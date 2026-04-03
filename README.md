@@ -65,3 +65,46 @@ read logs if there are problems:
 ```shell
 journalctl --user -u picframe-web.service -f
 ```
+
+## use hdmi cec from the rpi to turn on the tv on boot
+
+create systemd service file
+
+```shell
+sudo nano /etc/systemd/system/tv-on.service
+```
+
+paste this in
+
+
+```ini
+[Unit]
+Description=Turn on TV via HDMI-CEC
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'sleep 5 && echo "on 0" | cec-client -s -d 1'
+
+[Install]
+WantedBy=multi-user.target
+```
+
+tell systemd about the service
+
+```shell
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+```
+
+enable it at boot
+
+```shell
+sudo systemctl enable tv-on.service
+```
+
+test it once
+
+```shell
+sudo systemctl start tv-on.service
+```
