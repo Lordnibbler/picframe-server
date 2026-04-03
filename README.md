@@ -108,3 +108,32 @@ test it once
 ```shell
 sudo systemctl start tv-on.service
 ```
+
+## enable VNC
+
+```shell
+ssh pi@192.168.50.117
+
+# Then run:
+sudo raspi-config
+```
+
+Go to:
+Interface Options → VNC → Enable
+
+Exit and reboot (optional but safe):
+
+```shell
+sudo reboot
+```
+
+Most Raspberry Pi OS installs already include it, but just in case:
+
+```shell
+sudo apt update
+sudo apt install realvnc-vnc-server realvnc-vnc-viewer
+
+# Enable it:
+sudo systemctl enable vncserver-x11-serviced
+sudo systemctl start vncserver-x11-serviced
+```
