@@ -263,9 +263,17 @@
         </div>
       {% endfor %}
 
-      <button type="submit" class="btn btn-primary btn-lg floating-save">
+      <!-- <button type="submit" class="btn btn-primary btn-lg floating-save">
         Save configuration
-      </button>
+      </button> -->
+
+      <div style="display:flex; gap:12px; margin-top:20px;">
+        <button type="submit" class="btn btn-primary btn-lg floating-save">Save configuration</button>
+      </div>
+    </form>
+
+    <form method="post" action="{{ url_for('action_next') }}" style="margin-top:12px;">
+      <button type="submit"  class="btn btn-primary btn-lg floating-save">Next photo</button>
     </form>
   </div>
 

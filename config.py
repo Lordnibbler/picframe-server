@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 
+import requests
 from flask import Flask, render_template, request, redirect, url_for, flash
 from ruamel.yaml import YAML
 
@@ -10,6 +11,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("PICFRAME_WEB_SECRET", "change-me")
 
 CONFIG_FILE = "/home/pi/picframe_data/config/configuration.yaml"
+PICFRAME_HTTP_URL = "http://127.0.0.1:9000"
 
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -561,6 +563,10 @@ def build_field(path, name, schema, value):
         "options": schema.get("options", []),
     }
 
+def picframe_next():
+    # PicFrame HTTP control action
+    r = requests.get(f"{PICFRAME_HTTP_URL}?next={{}}", timeout=3)
+    r.raise_for_status()
 
 def merge_schema_with_config(schema, config):
     result = {}
@@ -733,6 +739,15 @@ def update():
 
     return redirect(url_for("index"))
 
+
+@app.route("/action/next", methods=["POST", "GET"])
+def action_next():
+    try:
+        picframe_next()
+        flash("Advanced to next image.", "success")
+    except Exception as exc:
+        flash(f"Failed to advance image: {exc}", "danger")
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
