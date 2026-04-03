@@ -137,3 +137,10 @@ sudo apt install realvnc-vnc-server realvnc-vnc-viewer
 sudo systemctl enable vncserver-x11-serviced
 sudo systemctl start vncserver-x11-serviced
 ```
+
+## copy my config and start script to the rpi
+
+```shell
+scp "./configuration.yaml" pi@192.168.50.117:~/picframe_data/config/configuration.yaml
+scp "./start_picframe.sh" pi@192.168.50.117:~/
+```
