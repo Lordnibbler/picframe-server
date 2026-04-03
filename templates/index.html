@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PicFrame Configuration Editor</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      background: #f7f7f9;
+    }
+
+    .floating-save {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 1000;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .section-card {
+      border: 0;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      background: #212529;
+      color: #fff;
+      padding: 1rem 1.25rem;
+    }
+
+    .field-help {
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+    }
+
+    .type-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .group-box {
+      border: 1px solid #dee2e6;
+      border-radius: 12px;
+      padding: 1rem;
+      background: #fff;
+    }
+
+    .subgroup-box {
+      border: 1px dashed #ced4da;
+      border-radius: 10px;
+      padding: 1rem;
+      background: #fcfcfd;
+    }
+
+    textarea.codeish {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      min-height: 92px;
+    }
+
+    .sticky-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 900;
+      background: rgba(247, 247, 249, 0.96);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid #e9ecef;
+    }
+  </style>
+</head>
+<body>
+  <div class="sticky-topbar">
+    <div class="container py-3">
+      <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <div>
+          <h1 class="h3 mb-1">PicFrame Configuration Editor</h1>
+          <div class="text-muted small">Editing: {{ config_file }}</div>
+        </div>
+        <div class="text-muted small">
+          Missing documented keys are shown with their default values.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container py-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="/update">
+      {% for section_key, section in config.items() %}
+        <div class="card section-card mb-4">
+          <div class="section-header">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <h2 class="h5 mb-0">{{ section._title }}</h2>
+              <span class="badge text-bg-light">{{ section_key }}</span>
+            </div>
+          </div>
+
+          <div class="card-body p-4">
+            <div class="row g-4">
+              {% for field in section._fields %}
+                {% if field.type == "group" %}
+                  <div class="col-12">
+                    <div class="group-box">
+                      <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="h6 mb-0">{{ field.label }}</h3>
+                        <span class="badge text-bg-secondary type-badge">group</span>
+                      </div>
+
+                      {% if field.description %}
+                        <p class="field-help mb-3">{{ field.description }}</p>
+                      {% endif %}
+
+                      <div class="row g-3">
+                        {% for subgroup in field.children %}
+                          <div class="col-12 col-xl-6">
+                            <div class="subgroup-box h-100">
+                              <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="h6 mb-0">{{ subgroup.label }}</h4>
+                                <span class="badge text-bg-light border">{{ subgroup.name }}</span>
+                              </div>
+
+                              {% for subfield in subgroup.fields %}
+                                <div class="mb-3">
+                                  <label class="field-label" for="{{ subfield.path }}">
+                                    <span>{{ subfield.label }}</span>
+                                    <span class="badge text-bg-secondary type-badge">{{ subfield.type }}</span>
+                                  </label>
+
+                                  {% if subfield.type == "bool" %}
+                                    <select
+                                      class="form-select"
+                                      id="{{ subfield.path }}"
+                                      name="{{ subfield.path }}"
+                                    >
+                                      <option value="true" {% if subfield.raw_value == true %}selected{% endif %}>True</option>
+                                      <option value="false" {% if subfield.raw_value != true %}selected{% endif %}>False</option>
+                                    </select>
+
+                                  {% elif subfield.type in ["select", "select_null"] %}
+                                    <select
+                                      class="form-select"
+                                      id="{{ subfield.path }}"
+                                      name="{{ subfield.path }}"
+                                    >
+                                      {% for option in subfield.options %}
+                                        {% set option_value = "__NULL__" if option is none else option|string %}
+                                        <option value="{{ option_value }}" {% if subfield.value == option_value %}selected{% endif %}>
+                                          {{ "null" if option is none else option }}
+                                        </option>
+                                      {% endfor %}
+                                    </select>
+
+                                  {% elif subfield.type in ["json", "nullable_json"] %}
+                                    <textarea
+                                      class="form-control codeish"
+                                      id="{{ subfield.path }}"
+                                      name="{{ subfield.path }}"
+                                    >{{ subfield.value }}</textarea>
+
+                                  {% else %}
+                                    <input
+                                      type="text"
+                                      class="form-control"
+                                      id="{{ subfield.path }}"
+                                      name="{{ subfield.path }}"
+                                      value="{{ subfield.value }}"
+                                    />
+                                  {% endif %}
+
+                                  {% if subfield.description %}
+                                    <div class="field-help mt-2">{{ subfield.description }}</div>
+                                  {% endif %}
+                                </div>
+                              {% endfor %}
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="col-12 col-lg-6">
+                    <div class="mb-1">
+                      <label class="field-label" for="{{ field.path }}">
+                        <span>{{ field.label }}</span>
+                        <span class="badge text-bg-secondary type-badge">{{ field.type }}</span>
+                      </label>
+                    </div>
+
+                    {% if field.type == "bool" %}
+                      <select class="form-select" id="{{ field.path }}" name="{{ field.path }}">
+                        <option value="true" {% if field.raw_value == true %}selected{% endif %}>True</option>
+                        <option value="false" {% if field.raw_value != true %}selected{% endif %}>False</option>
+                      </select>
+
+                    {% elif field.type in ["select", "select_null"] %}
+                      <select class="form-select" id="{{ field.path }}" name="{{ field.path }}">
+                        {% for option in field.options %}
+                          {% set option_value = "__NULL__" if option is none else option|string %}
+                          <option value="{{ option_value }}" {% if field.value == option_value %}selected{% endif %}>
+                            {{ "null" if option is none else option }}
+                          </option>
+                        {% endfor %}
+                      </select>
+
+                    {% elif field.type in ["json", "nullable_json"] %}
+                      <textarea class="form-control codeish" id="{{ field.path }}" name="{{ field.path }}">{{ field.value }}</textarea>
+
+                    {% else %}
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="{{ field.path }}"
+                        name="{{ field.path }}"
+                        value="{{ field.value }}"
+                      />
+                    {% endif %}
+
+                    {% if field.description %}
+                      <div class="field-help mt-2">{{ field.description }}</div>
+                    {% endif %}
+
+                    <div class="text-muted small mt-1">
+                      Default:
+                      <code>
+                        {% if field.default is none %}
+                          null
+                        {% else %}
+                          {{ field.default }}
+                        {% endif %}
+                      </code>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+
+      <button type="submit" class="btn btn-primary btn-lg floating-save">
+        Save configuration
+      </button>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
