@@ -144,3 +144,14 @@ sudo systemctl start vncserver-x11-serviced
 scp "./configuration.yaml" pi@192.168.50.117:~/picframe_data/config/configuration.yaml
 scp "./start_picframe.sh" pi@192.168.50.117:~/
 ```
+
+
+## auto mount the nas share for photos
+
+```shell
+sudo nano /etc/fstab
+
+# paste in the contents of /etc/fstab from this repo
+
+sudo reboot
+```
