@@ -68,6 +68,8 @@ journalctl --user -u picframe-web.service -f
 
 ## use hdmi cec from the rpi to turn on the tv on boot
 
+If both the rpi and tv are on a smart switch together, you may wish for the rpi to tell the tv to turn on at boot time. If only the tv is on a smart switch proceed to the next section.
+
 create systemd service file
 
 ```shell
@@ -109,6 +111,38 @@ test it once
 sudo systemctl start tv-on.service
 ```
 
+## automatically turn on tv every 60 seconds
+
+for an rpi on constant power and a tv on a smart switch you may wish to have the rpi turn the tv on automatically if there is power to it.
+
+create systemd service
+
+```shell
+nano ~/.config/systemd/user/tv-wake.service
+```
+
+with contents
+
+```ini
+[Unit]
+Description=Periodic HDMI-CEC TV Wake
+
+[Service]
+ExecStart=/home/pi/picframe-server/tv_wake.sh
+Restart=always
+
+[Install]
+WantedBy=default.target
+```
+
+enable it
+
+```shell
+systemctl --user daemon-reload
+systemctl --user enable --now tv-wake.service
+```
+
+
 ## enable VNC
 
 ```shell
@@ -144,7 +178,6 @@ sudo systemctl start vncserver-x11-serviced
 scp "./configuration.yaml" pi@192.168.50.117:~/picframe_data/config/configuration.yaml
 scp "./start_picframe.sh" pi@192.168.50.117:~/
 ```
-
 
 ## auto mount the nas share for photos
 
